@@ -1108,6 +1108,16 @@ margin-right: 0; }
 <li><a href="#/fetch-vs-sse-comparison" id="/toc-fetch-vs-sse-comparison">Fetch vs SSE Comparison</a></li>
 </ul></li>
 <li><a href="#/websockets" id="/toc-websockets">WebSockets</a></li>
+<li><a href="#/i-want-to-talk" id="/toc-i-want-to-talk">I want to talk!</a>
+<ul>
+<li><a href="#/request" id="/toc-request">Request!</a></li>
+<li><a href="#/request-details" id="/toc-request-details">Request details</a></li>
+<li><a href="#/response-details" id="/toc-response-details">Response details</a></li>
+</ul></li>
+<li><a href="#/extension-negotiation-rfc-6455-9" id="/toc-extension-negotiation-rfc-6455-9">Extension Negotiation (RFC 6455 §9)</a>
+<ul>
+<li><a href="#/how-do-we-choose" id="/toc-how-do-we-choose">How do we choose?</a></li>
+</ul></li>
 <li><a href="#/frames" id="/toc-frames">Frames</a>
 <ul>
 <li><a href="#/rsv1" id="/toc-rsv1">RSV1</a></li>
@@ -1220,9 +1230,52 @@ margin-right: 0; }
 <section id="websockets" class="title-slide slide level1 center">
 <h1>WebSockets</h1>
 <p>RFC nitty gritty!</p>
-<blockquote>
-<h1 id="extension-negotiation-rfc-6455-9">Extension Negotiation (RFC 6455 §9)</h1>
-</blockquote>
+</section>
+
+<section>
+<section id="i-want-to-talk" class="title-slide slide level1 center">
+<h1>I want to talk!</h1>
+<p><strong>WebSocket Handshake</strong> (RFC 6455 §1.3)</p>
+<p>The WebSocket protocol begins as an <strong>HTTP/1.1 upgrade request</strong>,<br>
+allowing clients and servers to switch from HTTP to a persistent TCP-based, full-duplex WebSocket connection.</p>
+<p>The goal:</p>
+<p>Change from HTTP to HTTP but we use the TCP socket underneath!</p>
+</section>
+<section id="request" class="slide level2">
+<h2>Request!</h2>
+<pre><code>GET /ws-path HTTP/1.1\r\n
+Host: example.com\r\n
+Upgrade: websocket\r\n
+Connection: Upgrade\r\n
+Sec-WebSocket-Key: dGhlIHNhbXBsZSBub25jZQ==\r\n
+Sec-WebSocket-Version: 13\r\n
+\r\n\r\n</code></pre>
+</section>
+<section id="request-details" class="slide level2">
+<h2>Request details</h2>
+<ul>
+<li><code>Upgrade: websocket</code> — asks to switch protocol</li>
+<li><code>Connection: Upgrade</code> — signals intent to upgrade (part of the HTTP specification, which WebSocket uses)</li>
+<li><code>Sec-WebSocket-Key</code> — random 16-byte base64 value (for challenge–response)</li>
+<li><code>Sec-WebSocket-Version</code> — must be <code>13</code> (current RFC) (just the version)</li>
+<li><code>Origin</code> — browser security policy</li>
+</ul>
+</section>
+<section id="response-details" class="slide level2">
+<h2>Response details</h2>
+<ul>
+<li>Status <code>101</code> = successful protocol switch<br>
+</li>
+<li><code>Sec-WebSocket-Accept</code> = <code>base64(SHA1(key + GUID))</code>
+<ul>
+<li>GUID = <code>258EAFA5-E914-47DA-95CA-C5AB0DC85B11</code></li>
+</ul></li>
+<li>Echoes accepted extensions (if any)</li>
+</ul>
+</section></section>
+<section>
+<section id="extension-negotiation-rfc-6455-9" class="title-slide slide level1 center">
+<h1>Extension Negotiation (RFC 6455 §9)</h1>
 <blockquote>
 <p>WebSocket extensions allow endpoints to modify how frames are interpreted<br>
 (e.g., compression, multiplexing) without breaking protocol compatibility. —</p>
@@ -1237,9 +1290,16 @@ Upgrade: websocket
 Connection: Upgrade
 Sec-WebSocket-Key: x3JJHMbDL1EzLkh9GBhXDw==
 Sec-WebSocket-Version: 13
-Sec-WebSocket-Extensions: permessage-deflate; client_max_window_bits</code></pre>
+Sec-WebSocket-Extensions: permessage-deflate; client_max_window_bits, x-super-mux</code></pre>
 </section>
-
+<section id="how-do-we-choose" class="slide level2">
+<h2>How do we choose?</h2>
+<p>The server chooses!</p>
+<p>Which extensions it’s willing to use, and the exact parameters for each one.</p>
+<pre><code>Sec-WebSocket-Extensions: permessage-deflate; server_no_context_takeover</code></pre>
+<p>(in the upgrade response)</p>
+<p>(Ignores x-super-mux (not supported)) Adds its own parameter (server_no_context_takeover).</p>
+</section></section>
 <section>
 <section id="frames" class="title-slide slide level1 center">
 <h1>Frames</h1>
