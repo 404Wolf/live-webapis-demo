@@ -1,42 +1,69 @@
 package main
 
 import (
+	"crypto/sha1"
+	"encoding/base64"
 	"fmt"
 	"log"
 	"net/http"
-
-	"github.com/gorilla/websocket"
+	"time"
 )
 
-var upgrader = websocket.Upgrader{
-	CheckOrigin: func(r *http.Request) bool {
-		return true // Allow all origins in demo
-	},
-}
-
 func websocketHandler(w http.ResponseWriter, r *http.Request) {
-	conn, err := upgrader.Upgrade(w, r, nil)
+	// Check for websocket upgrade headers
+	if r.Header.Get("Upgrade") != "websocket" {
+		http.Error(w, "Not a websocket handshake", http.StatusBadRequest)
+		return
+	}
+
+	// Get the Sec-WebSocket-Key header
+	key := r.Header.Get("Sec-WebSocket-Key")
+	if key == "" {
+		http.Error(w, "Missing Sec-WebSocket-Key", http.StatusBadRequest)
+		return
+	}
+
+	// Calculate accept key
+	h := sha1.New()
+	h.Write([]byte(key + "258EAFA5-E914-47DA-95CA-C5AB0DC85B11"))
+	acceptKey := base64.StdEncoding.EncodeToString(h.Sum(nil))
+
+	// Hijack the connection
+	hijacker, ok := w.(http.Hijacker)
+	if !ok {
+		http.Error(w, "Webserver doesn't support hijacking", http.StatusInternalServerError)
+		return
+	}
+
+	conn, bufrw, err := hijacker.Hijack()
 	if err != nil {
-		log.Println("Upgrade error:", err)
+		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
 	defer conn.Close()
 
-	for {
-		messageType, message, err := conn.ReadMessage()
-		if err != nil {
-			log.Println("Read error:", err)
-			break
-		}
+	// Send handshake response
+	resp := "HTTP/1.1 101 Switching Protocols\r\n" +
+		"Upgrade: websocket\r\n" +
+		"Connection: Upgrade\r\n" +
+		"Sec-WebSocket-Accept: " + acceptKey + "\r\n\r\n"
 
-		fmt.Printf("Received: %s\n", message)
+	bufrw.WriteString(resp)
+	bufrw.Flush()
 
-		// Echo the message back
-		err = conn.WriteMessage(messageType, message)
-		if err != nil {
-			log.Println("Write error:", err)
-			break
-		}
+	// Send "hi" every second
+	ticker := time.NewTicker(time.Second)
+	defer ticker.Stop()
+
+	for range ticker.C {
+		// Create websocket frame for text message "hi"
+		payload := []byte("hi")
+		frame := make([]byte, 2+len(payload))
+		frame[0] = 0x81               // FIN + text frame
+		frame[1] = byte(len(payload)) // payload length
+		copy(frame[2:], payload)
+
+		conn.Write(frame)
 	}
 }
 
