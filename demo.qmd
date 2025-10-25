@@ -43,6 +43,21 @@ Content-Length: 85\r\n
 
 # SSE
 
+Server sent events!!
+
+https://developer.mozilla.org/en-US/docs/Web/API/Server-sent_events
+
+## Fetch vs SSE Comparison
+
+| Feature | Fetch API | Server-Sent Events (SSE) |
+|---------|-----------|--------------------------|
+| **Direction** | Request-Response | Server → Client only |
+| **Connection** | One-time | Persistent |
+| **Real-time** | No | Yes |
+| **Data Format** | Any (JSON, text, etc.) | Text-based events |
+| **Overhead** | New connection per request | Single connection |
+| **Error Handling** | Promise-based | Event-based |
+| **Use Case** | API calls, file uploads | Live updates, notifications |
 
 # WebSockets
 

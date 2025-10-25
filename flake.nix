@@ -42,6 +42,8 @@
               gopls
               delve
               gosimports
+              texliveFull
+              quarto
             ];
           };
         };
