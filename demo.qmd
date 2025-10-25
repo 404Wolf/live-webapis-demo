@@ -47,6 +47,18 @@ Server sent events!!
 
 https://developer.mozilla.org/en-US/docs/Web/API/Server-sent_events
 
+# What are they?
+
+An easy way to be fed EVENTs from a server
+
+```js
+const eventSource = new EventSource('https://api.example.com/events');
+
+eventSource.onmessage = function(event) {
+  console.log('Received:', event.data);
+};
+```
+
 ## Fetch vs SSE Comparison
 
 | Feature | Fetch API | Server-Sent Events (SSE) |
@@ -58,6 +70,56 @@ https://developer.mozilla.org/en-US/docs/Web/API/Server-sent_events
 | **Overhead** | New connection per request | Single connection |
 | **Error Handling** | Promise-based | Event-based |
 | **Use Case** | API calls, file uploads | Live updates, notifications |
+
+How do they work?
+
+## Handshake?
+
+## Client -> server:
+
+```
+GET /sse HTTP/1.1\r\n
+Host: example.com\r\n
+Accept: text/event-stream\r\n
+Cache-Control: no-cache\r\n
+Connection: keep-alive\r\n
+Last-Event-ID: 42\r\n
+\r\n\r\n
+```
+
+> Last-Event-ID → (optional) client asking to resume after a dropped connection.
+
+Hey there! I wanna connect to your SSE PLLS
+
+## Server -> client:
+
+```
+HTTP/1.1 200 OK\r\n
+Content-Type: text/event-stream\r\n
+Cache-Control: no-cache\r\n
+Connection: keep-alive\r\n
+\r\n\r\n
+```
+
+Ready, set, go!
+
+## Example
+
+```
+retry: 5000
+event: welcome
+data: Hello, client!
+id: 1
+
+event: tick
+id: 2
+data: 2025-10-25T16:53:00Z
+
+data: still alive
+```
+
+(note that last line!)
+We don't need an `id`, but we lose deduplication and auto-resume :(
 
 # WebSockets
 
