@@ -123,20 +123,16 @@ func handleConnection(conn net.Conn) {
 	for {
 		// Read frame header (2 bytes minimum)
 		frameHeader := make([]byte, 2)
-		_, err := conn.Read(frameHeader)
-		if err != nil {
-			yellow.Printf("Connection closed: %v\n", err)
-			return
-		}
+		conn.Read(frameHeader) // should do error checking here
 
 		yellow.Println("Received WebSocket frame from client:")
 		yellow.Printf("Frame header bytes: %08b %08b\n", frameHeader[0], frameHeader[1])
 
 		// Parse frame header
-		fin := (frameHeader[0] & 0x80) != 0
-		opcode := frameHeader[0] & 0x0F
-		masked := (frameHeader[1] & 0x80) != 0
-		payloadLen := int(frameHeader[1] & 0x7F)
+		fin := (frameHeader[0] & 0b1_000_0000) != 0
+		opcode := frameHeader[0] & 0b0000_1111
+		masked := (frameHeader[1] & 0b1000_0000) != 0
+		payloadLen := int(frameHeader[1] & 0b0111_1111)
 
 		yellow.Printf("FIN: %t, Opcode: %d, Masked: %t, Payload length: %d\n", fin, opcode, masked, payloadLen)
 
