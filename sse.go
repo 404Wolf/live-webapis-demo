@@ -79,38 +79,35 @@ func sseHandler(w http.ResponseWriter, r *http.Request) {
 	ticker := time.NewTicker(2 * time.Second)
 	defer ticker.Stop()
 
+	// Make sure to stop the ticker when the client disconnects
+	go func() {
+		<-r.Context().Done()
+		ticker.Stop()
+	}()
+
 	counter := 1
-	for range ticker.C {
-		blue.Println("Sending SSE message to client:")
+	for {
+		select {
+		case <-r.Context().Done():
+			blue.Println("Client disconnected, stopping SSE")
+			return
+		case <-ticker.C:
+			blue.Println("Sending SSE message to client:")
 
-		// Create SSE message with event ID and data
-		eventMessage := fmt.Sprintf("id: %d\ndata: Message #%d from SSE server\n\n", counter, counter)
+			// Create SSE message with event ID and data
+			eventMessage := fmt.Sprintf("id: %d\ndata: Message #%d from SSE server\n\n", counter, counter)
 
-		blue.Printf("Raw SSE message bytes: %v\n", []byte(eventMessage))
-		blue.Printf("Message structure:\n")
-		blue.Printf("  ID field: %d\n", counter)
-		blue.Printf("  Data field: Message #%d from SSE server\n", counter)
-		blue.Printf("  Terminator: \\n\\n\n")
-		blue.Printf("Full message: %q\n", eventMessage)
+			// Send the message - check for errors which indicate client disconnect
+			fmt.Fprint(w, eventMessage) // you should usually do error checking here
+			// (directly write it to the wire)
 
-		// Show byte breakdown
-		blue.Printf("Byte breakdown:\n")
-		for i, b := range []byte(eventMessage) {
-			if b == '\n' {
-				blue.Printf("  [%d]: \\n (newline, %d, %08b)\n", i, b, b)
-			} else {
-				blue.Printf("  [%d]: %c (%d, %08b)\n", i, b, b, b)
+			if flusher, ok := w.(http.Flusher); ok {
+				flusher.Flush() // make sure it pumps out immediately
 			}
-		}
 
-		// Send the message
-		fmt.Fprint(w, eventMessage)
-		if flusher, ok := w.(http.Flusher); ok {
-			flusher.Flush()
+			blue.Printf("Sent message #%d\n", counter)
+			blue.Println("---")
+			counter++
 		}
-
-		blue.Printf("Sent message #%d\n", counter)
-		blue.Println("---")
-		counter++
 	}
 }
