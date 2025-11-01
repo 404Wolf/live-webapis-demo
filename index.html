@@ -1,18 +1,18 @@
-<!DOCTYPE html>
+<!doctype html>
 <html>
-<head>
+  <head>
     <title>WebSocket & SSE Demo</title>
-</head>
-<body>
+  </head>
+  <body>
     <h1>WebSocket & SSE Demo</h1>
-    
+
     <h2>WebSocket Test</h2>
     <button onclick="connectWS()">Connect WebSocket</button>
     <button onclick="sendMessage()">Send Message</button>
     <button onclick="disconnectWS()">Disconnect</button>
     <div id="ws-status">Not connected</div>
     <div id="ws-messages"></div>
-    
+
     <h2>SSE Test</h2>
     <button onclick="connectSSE()">Connect SSE</button>
     <button onclick="disconnectSSE()">Disconnect SSE</button>
@@ -20,57 +20,58 @@
     <div id="sse-messages"></div>
 
     <script>
-        let ws = null;
-        let eventSource = null;
+      let ws = null;
+      let eventSource = null;
 
-        function connectWS() {
-            ws = new WebSocket('ws://localhost:8080/ws');
-            ws.onopen = function() {
-                document.getElementById('ws-status').innerText = 'Connected';
-            };
-            ws.onmessage = function(event) {
-                const div = document.createElement('div');
-                div.innerText = 'Received: ' + event.data;
-                document.getElementById('ws-messages').appendChild(div);
-            };
-            ws.onclose = function() {
-                document.getElementById('ws-status').innerText = 'Disconnected';
-            };
-        }
+      function connectWS() {
+        ws = new WebSocket("ws://localhost:8080/ws");
+        ws.onopen = function () {
+          document.getElementById("ws-status").innerText = "Connected";
+        };
+        ws.onmessage = function (event) {
+          const div = document.createElement("div");
+          div.innerText = "Received: " + event.data;
+          document.getElementById("ws-messages").appendChild(div);
+        };
+        ws.onclose = function () {
+          document.getElementById("ws-status").innerText = "Disconnected";
+        };
+      }
 
-        function sendMessage() {
-            if (ws) {
-                ws.send('Hello from browser!');
-            }
+      function sendMessage() {
+        if (ws) {
+          ws.send("Hello from browser!");
         }
+      }
 
-        function disconnectWS() {
-            if (ws) {
-                ws.close();
-            }
+      function disconnectWS() {
+        if (ws) {
+          ws.close();
         }
+      }
 
-        function connectSSE() {
-            eventSource = new EventSource('/sse');
-            eventSource.onopen = function() {
-                document.getElementById('sse-status').innerText = 'Connected';
-            };
-            eventSource.onmessage = function(event) {
-                const div = document.createElement('div');
-                div.innerText = 'Received: ' + event.data;
-                document.getElementById('sse-messages').appendChild(div);
-            };
-            eventSource.onerror = function() {
-                document.getElementById('sse-status').innerText = 'Error/Disconnected';
-            };
-        }
+      function connectSSE() {
+        eventSource = new EventSource("/sse");
+        eventSource.onopen = function () {
+          document.getElementById("sse-status").innerText = "Connected";
+        };
+        eventSource.onmessage = function (event) {
+          const div = document.createElement("div");
+          div.innerText = "Received: " + event.data;
+          document.getElementById("sse-messages").appendChild(div);
+        };
+        eventSource.onerror = function () {
+          document.getElementById("sse-status").innerText =
+            "Error/Disconnected";
+        };
+      }
 
-        function disconnectSSE() {
-            if (eventSource) {
-                eventSource.close();
-                document.getElementById('sse-status').innerText = 'Disconnected';
-            }
+      function disconnectSSE() {
+        if (eventSource) {
+          eventSource.close();
+          document.getElementById("sse-status").innerText = "Disconnected";
         }
+      }
     </script>
-</body>
+  </body>
 </html>
