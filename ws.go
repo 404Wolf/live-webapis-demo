@@ -61,6 +61,7 @@ func websocketHandler(w http.ResponseWriter, r *http.Request) {
 	// Note that the server does not need to remember the key — it can just
 	// compute the accept key on the fly.
 
+	// This is concating, like one follows another directly, not numerical addition.
 	h.Write([]byte(key + "258EAFA5-E914-47DA-95CA-C5AB0DC85B11"))
 	acceptKey := base64.StdEncoding.EncodeToString(h.Sum(nil))
 
@@ -109,7 +110,7 @@ func handleConnection(conn net.Conn) {
 
 		for range ticker.C {
 			// Send a simple text frame "hi"
-			frame := []byte{0x81, 0x02, 'h', 'i'} // FIN + text frame, length 2, payload "hi"
+			frame := []byte{0b1_000_0001, 0b0000_0010, 'h', 'i'} // FIN + text frame, length 2, payload "hi"
 			_, err := conn.Write(frame)
 			if err != nil {
 				green.Printf("Error sending frame: %v\n", err)
@@ -129,22 +130,30 @@ func handleConnection(conn net.Conn) {
 		yellow.Printf("Frame header bytes: %08b %08b\n", frameHeader[0], frameHeader[1])
 
 		// Parse frame header
-		fin := (frameHeader[0] & 0b1_000_0000) != 0
-		opcode := frameHeader[0] & 0b0000_1111
-		masked := (frameHeader[1] & 0b1000_0000) != 0
-		payloadLen := int(frameHeader[1] & 0b0111_1111)
+		// the structure of the first byte is:
+		// 1 bit: FIN
+		// 3 bits: RSV1, RSV2, RSV3
+		// 4 bits: Opcode
+		fin := (frameHeader[0] & 0b1_000_0000) != 0 // only keep the FIN bit
+		opcode := frameHeader[0] & 0b0_000_1111     // only keep the opcode bits
+		// the structure of the second byte is:
+		// 1 bit: MASK
+		// 7 bits: Payload length
+		masked := (frameHeader[1] & 0b1_000_0000) != 0 // only keep the MASK bit
+		payloadLen := int(frameHeader[1] & 0b0_111_1111)
 
 		yellow.Printf("FIN: %t, Opcode: %d, Masked: %t, Payload length: %d\n", fin, opcode, masked, payloadLen)
 
 		// Handle extended payload lengths
-		if payloadLen == 126 {
+		switch payloadLen {
+		case 126:
 			extLen := make([]byte, 2)
 			_, err := conn.Read(extLen)
 			if err != nil {
 				return
 			}
 			payloadLen = int(extLen[0])<<8 | int(extLen[1])
-		} else if payloadLen == 127 {
+		case 127: // this indicates that the length is in the next 8 bytes (64 bits)
 			extLen := make([]byte, 8)
 			_, err := conn.Read(extLen)
 			if err != nil {
@@ -196,7 +205,10 @@ func handleConnection(conn net.Conn) {
 		if opcode == 8 && payloadLen == 0 {
 			yellow.Println("Received close frame - closing connection")
 			// Send close frame back
-			closeFrame := []byte{0x88, 0x00} // FIN + close opcode, no payload
+			closeFrame := []byte{
+				0b1_000_1000, // FIN + close opcode, no payload
+				0b0_000_0000, // no mask, length 0
+			}
 			conn.Write(closeFrame)
 			return
 		}
